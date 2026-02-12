@@ -1,3 +1,15 @@
 <resources>
     <string name="app_name">Sample Declarative Gradle Android App</string>
+
+    <string name="title_voice_to_text">Voice to Text</string>
+    <string name="cd_start_listening">Start listening</string>
+
+    <string name="status_tap_mic">Tap the mic and start speaking</string>
+    <string name="status_listening">Listening…</string>
+    <string name="status_processing">Processing…</string>
+    <string name="status_permission_needed">Microphone permission is required</string>
+    <string name="status_error">Speech recognition error</string>
+    <string name="status_not_available">Speech recognition not available on this device</string>
+
+    <string name="transcription_placeholder">Your transcription will appear here.</string>
 </resources>
