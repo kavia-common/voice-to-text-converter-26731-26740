@@ -11,5 +11,7 @@
     <string name="status_error">Speech recognition error</string>
     <string name="status_not_available">Speech recognition not available on this device</string>
 
-    <string name="transcription_placeholder">Your transcription will appear here.</string>
+    <string name="query_hint">Recognized text will appear here</string>
+    <string name="cd_searching">Searching</string>
+    <string name="search_result_placeholder">Search results will appear here.</string>
 </resources>

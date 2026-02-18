@@ -5,10 +5,15 @@ import android.app.Activity
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.speech.RecognitionListener
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.view.View
 import android.widget.Button
+import android.widget.EditText
+import android.widget.ProgressBar
 import android.widget.TextView
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -18,12 +23,19 @@ class MainActivity : Activity() {
 
     private lateinit var micButton: Button
     private lateinit var statusText: TextView
-    private lateinit var transcriptionText: TextView
+
+    private lateinit var queryEditText: EditText
+    private lateinit var searchProgress: ProgressBar
+    private lateinit var searchResultText: TextView
 
     private var speechRecognizer: SpeechRecognizer? = null
     private var recognizerIntent: Intent? = null
 
     private var isListening: Boolean = false
+
+    // Used for the placeholder async "search" operation.
+    private val mainHandler: Handler = Handler(Looper.getMainLooper())
+    private var pendingSearchRunnable: Runnable? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -31,7 +43,10 @@ class MainActivity : Activity() {
 
         micButton = findViewById(R.id.micButton)
         statusText = findViewById(R.id.statusText)
-        transcriptionText = findViewById(R.id.transcriptionText)
+
+        queryEditText = findViewById(R.id.queryEditText)
+        searchProgress = findViewById(R.id.searchProgress)
+        searchResultText = findViewById(R.id.searchResultText)
 
         // Initialize speech recognizer if available on the device.
         if (!SpeechRecognizer.isRecognitionAvailable(this)) {
@@ -72,20 +87,20 @@ class MainActivity : Activity() {
                     isListening = false
                     val matches = results?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
                     val finalText = matches?.firstOrNull()
+
                     if (!finalText.isNullOrBlank()) {
-                        transcriptionText.text = finalText
+                        // Put the final recognition result into the EditText...
+                        queryEditText.setText(finalText)
+                        // ...and automatically trigger a "search" based on that text.
+                        triggerAutoSearch(finalText)
                     }
+
                     statusText.text = getString(R.string.status_tap_mic)
                 }
 
                 override fun onPartialResults(partialResults: Bundle?) {
-                    // Stream partial transcription into the UI.
-                    val matches =
-                        partialResults?.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)
-                    val partialText = matches?.firstOrNull()
-                    if (!partialText.isNullOrBlank()) {
-                        transcriptionText.text = partialText
-                    }
+                    // Per instructions: write FINAL speech result into the EditText.
+                    // For partial results we keep status only (no query updates) to avoid excessive churn.
                 }
 
                 override fun onEvent(eventType: Int, params: Bundle?) {
@@ -112,6 +127,40 @@ class MainActivity : Activity() {
                 startListeningWithPermissionCheck()
             }
         }
+    }
+
+    /**
+     * Runs a placeholder "search" based on the final recognized query.
+     * Shows a loading indicator while the search is "running" and then displays the result.
+     */
+    private fun triggerAutoSearch(query: String) {
+        // Cancel any previously scheduled placeholder search so the latest query wins.
+        pendingSearchRunnable?.let { mainHandler.removeCallbacks(it) }
+
+        setSearchingUiState(true)
+
+        // Placeholder behavior: simulate a network/search delay.
+        pendingSearchRunnable = Runnable {
+            val cleaned = query.trim()
+            val result = if (cleaned.isBlank()) {
+                "No query provided."
+            } else {
+                // Placeholder result text — replace with real search logic when available.
+                "Result for: \"$cleaned\""
+            }
+
+            searchResultText.text = result
+            setSearchingUiState(false)
+        }.also { runnable ->
+            // Simulate ~1 second "search" time.
+            mainHandler.postDelayed(runnable, 1000L)
+        }
+    }
+
+    private fun setSearchingUiState(isSearching: Boolean) {
+        searchProgress.visibility = if (isSearching) View.VISIBLE else View.GONE
+        // Optional UX: prevent accidental edits while "searching"
+        queryEditText.isEnabled = !isSearching
     }
 
     private fun startListeningWithPermissionCheck() {
@@ -169,6 +218,10 @@ class MainActivity : Activity() {
 
     override fun onDestroy() {
         super.onDestroy()
+
+        pendingSearchRunnable?.let { mainHandler.removeCallbacks(it) }
+        pendingSearchRunnable = null
+
         speechRecognizer?.destroy()
         speechRecognizer = null
     }
